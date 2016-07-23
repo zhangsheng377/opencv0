@@ -1,15 +1,17 @@
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/core/core.hpp>    //opencv核心库
+#include <opencv2/imgproc/imgproc.hpp>  //opencv图像处理库
+#include <opencv2/highgui/highgui.hpp>  //用户界面库，播放视频用
+#include <opencv2/calib3d/calib3d.hpp>  //相机校准，姿态估计用
 
 #include <iostream>
 
 using namespace std;
 using namespace cv;
 
+//图像的宽度
 const int marker_width = 200;
 
+//Scalar是一个四元组，这里对应b，g，r，a
 Scalar blue(255, 0, 0);
 Scalar green(0, 255, 0);
 Scalar red(0, 0, 255);
@@ -35,24 +37,26 @@ void clockwise(vector<Point2f>& square){
 
 int main(int argc, char** argv) {
 
+    //Mat即矩阵，常用于存储图像
     Mat image;
 
-    cv::namedWindow("image", CV_WINDOW_NORMAL);
-    cv::setWindowProperty("image", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
-
     VideoCapture cap("video.mp4");
-    //VideoCapture cap(0);
+    //VideoCapture cap(0);//第0号设备，常是摄像头
 
     if(!cap.isOpened())
         return -1;
 
+    //cap.grab()即抓取下一帧
     while (cap.grab()) {
+        //解码抓取的帧，并放入image中
         cap.retrieve(image);
-
+        //转为灰度图
         Mat grayImage;
         cvtColor(image, grayImage, CV_RGB2GRAY);
+        //进行模糊化
         Mat blurredImage;
         blur(grayImage, blurredImage, Size(5, 5));
+        //使用大津算法，将图像进行二分
         Mat threshImage;
         threshold(blurredImage, threshImage, 128.0, 255.0, THRESH_OTSU);
 
@@ -63,6 +67,7 @@ int main(int argc, char** argv) {
         for (int i = 0; i < contours.size(); i++) {
             vector<Point> contour = contours[i];
             vector<Point> approx;
+            //使用多边形近似将轮廓近似为更简单的多边形
             approxPolyDP(contour, approx, arcLength(Mat(contour), true)*0.02, true);
             if( approx.size() == 4 &&
                 fabs(contourArea(Mat(approx))) > 1000 &&
@@ -146,9 +151,10 @@ int main(int argc, char** argv) {
         line(image, line2dy[0], line2dy[1], blue);
         line(image, line2dz[0], line2dz[1], green);
 
-
-        cv::imshow("image", image);
-        cv::waitKey(100);
+        //新建窗口，并显示image
+        cv::imshow("image窗口名", image);
+        //延迟 x ms
+        cv::waitKey(10);
     }
     return 0;
 }
