@@ -1,0 +1,3 @@
+/home/zsd/桌面/AR_tutorial_1/AR_tutorial_1/CMakeFiles/rebuild_cache.dir
+/home/zsd/桌面/AR_tutorial_1/AR_tutorial_1/CMakeFiles/edit_cache.dir
+/home/zsd/桌面/AR_tutorial_1/AR_tutorial_1/CMakeFiles/marker.dir
