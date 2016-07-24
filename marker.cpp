@@ -133,12 +133,17 @@ int main(int argc, char** argv) {
 
         circle(image, square[0], 5, red);
 
+		//加载摄像机内参数
         FileStorage fs("calibrate/out_camera_data.xml", FileStorage::READ);
         Mat intrinsics, distortion;
+        //内参数(焦距、光心)矩阵
         fs["Camera_Matrix"] >> intrinsics;
+        //畸变五元组
         fs["Distortion_Coefficients"] >> distortion;
 
+		//四顶点对应的3d点集
         vector<Point3f> objectPoints;
+        //注意：因为opencv中是y轴向下（x轴在y轴前），为了我们所要的视觉效果（y轴在x轴前），这里的y都取了负。
         objectPoints.push_back(Point3f(-1, 1, 0));
         objectPoints.push_back(Point3f(1, 1, 0));
         objectPoints.push_back(Point3f(1, -1, 0));
@@ -147,24 +152,26 @@ int main(int argc, char** argv) {
 
         Mat rvec;
         Mat tvec;
-
+		//获取外参数
         solvePnP(objectPointsMat, square, intrinsics, distortion, rvec, tvec);
-
+		//rvec：输出变量，指相机分别绕x,y,z轴的旋转量所组成的向量
+		//tcev：输出变量，指相机在世界坐标系中的坐标
         cout << "rvec: " << rvec << endl;
         cout << "tvec: " << tvec << endl;
 
+		//比如第一个就是原点，坐标（1,0,0）的点
         vector<Point3f> line3dx = {{0, 0, 0}, {1, 0, 0}};
         vector<Point3f> line3dy = {{0, 0, 0}, {0, 1, 0}};
         vector<Point3f> line3dz = {{0, 0, 0}, {0, 0, 1}};
-
+		//映射后的点坐标
         vector<Point2f> line2dx;
         vector<Point2f> line2dy;
         vector<Point2f> line2dz;
+        //做点映射
         projectPoints(line3dx, rvec, tvec, intrinsics, distortion, line2dx);
         projectPoints(line3dy, rvec, tvec, intrinsics, distortion, line2dy);
         projectPoints(line3dz, rvec, tvec, intrinsics, distortion, line2dz);
-
-
+		//绘制轴线
         line(image, line2dx[0], line2dx[1], red);
         line(image, line2dy[0], line2dy[1], blue);
         line(image, line2dz[0], line2dz[1], green);
