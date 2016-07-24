@@ -29,8 +29,9 @@ void clockwise(vector<Point2f>& square){
     Point2f v2 = square[2] - square[0];
 
     double o = (v1.x * v2.y) - (v1.y * v2.x);
-
+    //由于opengl中的y轴是向下生长的，所以o < 0 为逆时针的情况
     if (o < 0.0){
+        //逆时针时交换点1与点3使其成为顺时针
         std::swap(square[1],square[3]);
     }
 }
@@ -40,7 +41,7 @@ int main(int argc, char** argv) {
     //Mat即矩阵，常用于存储图像
     Mat image;
 
-    VideoCapture cap("video.mp4");
+    VideoCapture cap("video2.mp4");
     //VideoCapture cap(0);//第0号设备，常是摄像头
 
     if(!cap.isOpened())
@@ -50,6 +51,7 @@ int main(int argc, char** argv) {
     while (cap.grab()) {
         //解码抓取的帧，并放入image中
         cap.retrieve(image);
+        
         //转为灰度图
         Mat grayImage;
         cvtColor(image, grayImage, CV_RGB2GRAY);
@@ -69,11 +71,14 @@ int main(int argc, char** argv) {
             vector<Point> approx;
             //使用多边形近似将轮廓近似为更简单的多边形
             approxPolyDP(contour, approx, arcLength(Mat(contour), true)*0.02, true);
+
+            //取面积足够大且为凸包的四边形作为我们的Marker
             if( approx.size() == 4 &&
                 fabs(contourArea(Mat(approx))) > 1000 &&
                 isContourConvex(Mat(approx)) )
             {
                 vector<Point2f> square;
+
 
                 for (int i = 0; i < 4; ++i)
                 {
@@ -82,24 +87,36 @@ int main(int argc, char** argv) {
                 squares.push_back(square);
             }
         }
+
+		if(squares.size()<1) continue;
         vector<Point2f> square = squares[0];
         drawQuad(image, square, green);
 
+		for(int i=1;i<squares.size();i++){	//zsd
+			vector<Point2f> square_temp = squares[i];
+        	drawQuad(image, square_temp, green);
+		}
+
+        //旋转square使其变为顺时针方向
         clockwise(square);
 
-        Mat marker;
-        vector<Point2f> marker_square;
+        Mat marker; //存储变换后的marker图
+        vector<Point2f> marker_square;  //目标形状
 
+        //从左上点顺时针走一遍,opengl的y轴向下生长
         marker_square.push_back(Point(0,0));
         marker_square.push_back(Point(marker_width-1, 0));
         marker_square.push_back(Point(marker_width-1,marker_width-1));
         marker_square.push_back(Point(0, marker_width-1));
 
-
+		//获取透视变换用矩阵
         Mat transform = getPerspectiveTransform(square, marker_square);
+		//应用变换矩阵得到marker
         warpPerspective(grayImage, marker,transform, Size(marker_width,marker_width));
+		//再对转换后的marker做一次二值化
         threshold(marker, marker, 125, 255, THRESH_BINARY|THRESH_OTSU);
 
+		//跟之前一样从左上点顺时针走一遍
         vector<Point> direction_point = {{50, 50} ,{150, 50},{150, 150},{50,150}};
         int direction;
         for (int i = 0; i < 4; ++i){
@@ -110,6 +127,7 @@ int main(int argc, char** argv) {
             }
         }
         for (int i = 0; i < direction; ++i){
+        	//根据方位左旋数组
             rotate(square.begin(), square.begin() + 1, square.end());
         }
 
@@ -154,7 +172,7 @@ int main(int argc, char** argv) {
         //新建窗口，并显示image
         cv::imshow("image窗口名", image);
         //延迟 x ms
-        cv::waitKey(10);
+        cv::waitKey(100);
     }
     return 0;
 }
